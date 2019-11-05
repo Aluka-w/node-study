@@ -1,0 +1,746 @@
+# Node
+
+## Node环境
+
+### Node Npm Nvm 和yarn homebrew
+
+1. 三者关系: nvm切换不同版本的node, node自带npm
+
+    Mac : 'brew install nvm'
+    windows: github 搜索 'nvm-windows' 下载
+
+2. 终端指令
+
+      1. `open .nvm`: 打开nvm文件 -> versions -> node -> v10.15.3(代表node版本) -> lib(node_modules代表全局包)
+
+      2. nvm切换下node的全局包也会切换, 都放在自己node目录下, 安装全局包时候不需要管理员权限
+
+3. Nvm指令
+
+      1. `nvm list`: 列出安装的所有node版本
+
+      2. `nvm install v10.13.0`: 安装需要的版本(总归四个长期维护版本)
+
+      3. `nvm use --delete-prefix 10.13.0`: 切换需要的版本
+
+      4. 博客: `https://www.jianshu.com/p/622ad36ee020`(解决了安装问题)
+
+      5. 博客: `https://www.jianshu.com/p/04d31f6c22bd`(解决了安装问题)
+
+4. npm指令
+
+      1. `npm install -g jshint`: 安装全局包
+
+      2. `npm uninstall -g jshint`: 拆卸全局包
+
+      3. `npm update -g jshint`: 更新全局包
+
+      4. 官网: `https://www.npmjs.cn/`
+
+      5. npm安装太慢, 可以使用淘宝镜像: `npm i webpack --save --registry=https://registry.npm.taobao.org` 重点是后面那句
+
+      6. 淘宝镜像官网: `https://npm.taobao.org/`
+
+#### yarn(管理全局包)
+
+1. yarn
+
+    1. 指令
+
+        1. `yarn global add webpack`: 安装全局包
+
+        2. `yarn global dir`: 全局包所在位置
+
+        3. 更新全局包, cd到全局包所在位置, `yarn global upgrade webpack`(cd到那才有效, npm不需要)
+
+        4. `yarn global remove webpack`: 拆卸全局包
+
+        5. 官网: `https://yarn.bootcss.com/docs/usage/`
+
+#### homebrew(MacOS的软件管理)
+
+1. 指令
+
+    1. `open /usr/local/Cellar`: brew安装的所有包都在这
+
+    2. `brew install yarn cde`: 因为nvm管理和下载node, 所有brew在下载yarn的时候必须忽略安装node
+
+    3. 因为yarn是由brew 安装, 所以yarn也在brew安装目录下(yarn安装的全局包不在)
+
+    4. 官网: `https://brew.sh`
+
+    5. homebrew指令
+        1. 查看可运行的服务: `brew services`
+
+        2. 查看哪些由homebrew运行的进程: `brew services list`
+
+        3. 运行某个由homebrew安装的软件: `brew services start nginx`
+
+        4. 关闭某个进程: `brew services stop nginx`
+
+        5. 重启某个进程: `brew services restart nginx`
+
+## Node 和 JS的区别
+
+1. ECMAScript: 定义了语法, js和nodejs必须遵循
+
+2. 前端Javascipt: ES + web Api(W3C标准操作Dom, 处理click事件, 发送ajax请求) (缺一不可)
+
+3. Nodejs: ES + NodeJs Api(处理http请求, 操作文件) (缺一不可)
+
+### commonJs模块化
+
+1. AMD(老) CMD(淘汰) COMMONJS
+
+2. 导出: `module.exports.name = 'ben'` 或者 `exports.name = 'ben'` 或者 `exports = {}`
+
+3. 导入: `const name = require('./a')`(自己写的模块) 或者 `const fs = require('fs')` 内置模块或者第三方模块
+
+4. debugger(VsCode): 跟Chrome打断点类似
+
+### server端 和 web端的区别
+
+1. server端特点
+
+    1. 服务稳定性: server端可能遭到恶意攻击(PM2进程守候, 进程挂掉会自动重启, 开发阶段使用nodemon, 检测文件变化自动重启)
+
+    2. 考虑内存和CPU(优化.拓展)
+        1. 客户端独占浏览器(cpu和内存不是问题)
+        2. server端承载很多请求, stream写日志(节省cpu和内存), redis存session(优化, 拓展)
+
+    3. 日志记录
+        1. 前端日志只是日志发起方, 不关心后续
+        2. server端 多种方式记录, 存储, 分析日志
+
+    4. 安全
+        1. 越权操作(必须登录), 数据库攻击等
+        2. 登录验证, 防止xss攻击和sql注入
+
+    5. 集群和服务拆分:
+        1. 拓展机器和服务拆分承载大流量(访问量)
+
+## Node Api
+
+### 处理Http请求
+
+1. `querystring模块`处理get请求
+
+    ```js
+      const http = require('http');
+      const querystring = require('querystring');
+      const server = http.createServer((req, res) => {
+        // get请求: 'http://localhost:3000/html/a?name=binwang&age=123'
+        const url = req.url;
+        // 加上split, 只会解析name, 否则就是解析'/html/a?name'
+        req.query = querystring.parse(url.split('?')[1]);
+        res.end(JSON.stringify(req.query));
+      })
+      server.listen(3000);
+    ```
+
+2. 处理post请求
+
+    ```js
+      const server = http.createServer((req, res) => {
+        if (req.method === 'POST') {
+          let postData = '';
+          // post接受数据是持续不断的
+          req.on('data', chunk => {
+            postData += chunk.toString();
+          })
+          // post接受数据完毕
+          req.on('end', () => {
+            res.end('hello word!');
+          })
+        }
+      })
+    ```
+
+## 搭建开发环境(重要)
+
+1. 通过`package.json`的配置, 设置快捷指令
+![开发环境](./cut/开发环境图.png)
+
+2. 开发阶段nodemon检测文件变化, 自动重启node
+
+3. 使用cross-env 设置环境变量, 兼容mac linux 和win
+
+4. 通过cross-env, 可以由 `process.env.NODE_ENV` 获得当前环境
+
+5. `"dev": "cross-env NODE_ENV=dev nodemon ./bin/www.js"`, 这里设置环境
+
+6. router: 处理路由, controllar: 处理数据
+
+# mysql
+
+## mysql的安装
+
+1. 优势: 企业常用(专人维护), 社区常用(方便查错)
+    1. web server中最流行的关系型数据库
+    2. 官网免费下载, `https://dev.mysql.com/downloads/mysql/`
+    3. 轻量级, 易学易用
+2. 安装: 下载安装, 注意记得root用户名, 数据库密码
+
+## mysql workbench 的安装
+
+1. mysql workbench
+
+    1. 操作mysql客户端, 可视化操作
+    2. 下载官网: `https://dev.mysql.com/downloads/workbench/`
+
+2. workbench的连接
+![workbench-init](./cut/workbench-init.png)
+
+3. workbench的语句查询
+![sql语句的执行](./cut/sql语句的执行.png)
+
+### SQL的增删改查
+
+#### 建库
+
+1. sql语句建库: CREATE SCHEMA `myblog` ;
+
+2. workbench建库(上下都可)
+![create-sql](./cut/create-sql.png)
+
+#### 建表
+
+1. 基本表结构
+![表结构](./cut/表结构.png)
+
+2. 成功建表(sql语法可建, 但是比较麻烦)
+![成功建表](./cut/成功建表.png)
+
+3. 表结构的删除和编辑
+![edit-table](./cut/edit-table.png)
+
+#### 表操作
+
+1. SQL语法执行:
+
+    ![新增表数据](./cut/新增表数据.png)
+
+2. 表数据的增删改查
+
+    1. 增(id的自增不会考虑你删除的, 就只是一直增)
+
+        ```sql
+            -- 给某个表新增数据
+            insert into users(username, `password`, realname) value('zhangshan', '123', '张三');
+        ```
+
+    2. 删
+        `一般不会真的删除, 只是多加字段state, 1代表存在, 0代表不存在`
+
+        ```sql
+            -- 清除所有的表
+            delete from users;
+            -- 清除某条数据
+            delete from users where username='zhangshan';
+        ```
+
+    3. 改
+        `软删除, 只是更新状态`
+
+        ```sql
+            -- 把所有数据realname都改成',lisi'
+            update users set realname='lisi';
+            -- 更新某条数据(可能会报错, 解决在5)
+            update users set realname='lisi' where username='lisi';
+        ```
+
+    4. 查
+
+        ```sql
+            -- 展示数据库的所有表
+            show tables;
+            -- 查询表中所有列, 慎用*
+            select * from users;
+            -- 查询列中某些列
+            select id, username from users;
+            -- 查询某条数据(交集)
+            select * from users where username='zhangshan' and `password`='123';
+            -- 查询并集
+            select * from users where username='zhangshan' or `password`='123';
+            -- 模糊查询
+            select * from users where username like '%zhang%'
+            -- 模糊查询,并排序(默认正序从小到大)
+            select * from users where `password` like '%1%' order by id;
+            -- 模糊查询,并排序(倒序)
+            select * from users where `password` like '%1%' order by id desc;
+            -- 不等于<>
+            select * from users where state <> '0';
+        ```
+
+    5. 其他sql语句
+
+        ```sql
+            -- 执行一次, 更换换模式, 否则删除和修改会报错
+            SET SQL_SAFE_UPDATES=0;
+            -- 查询mysql版本, 当前版本 >= 5时, VARCHAR(10)时, 不论中文英文都是10个字符
+            select version();
+            -- 1=1 的用法是在搜索时, 保证哪怕没有其他搜索词, where也不会报错
+            select * from blogs where 1=1
+        ```
+
+## Nodejs操作MySql
+
+1. 封装成工具包, 调用api可直接操作数据库
+
+2. 安装插件: `npm i mysql -S`
+
+3. 报错
+
+    ```js
+        // 执行mysql语句时, 原因是没有配置数据库初始密码
+        {
+            sqlMessage: 'Client does not support authentication protocol requested by server; consider upgrading MySQL client',
+            sqlState: '08004',
+        }
+    ```
+
+    ```sql
+        use '你的数据库';
+        -- 解决方案
+        ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '你的Mysql密码';
+        SELECT plugin FROM mysql.user WHERE User = 'root';
+        FLUSH PRIVILEGES;
+    ```
+
+### Demo
+
+    ```js
+        // 引包
+        const mysql = require('mysql');
+        // 数据库的连接信息, 通常单独抽出配置
+        const MYSQL_CONF = {
+            host: 'localhost',
+            user: 'root',
+            password: '数据库密码',
+            port: '3306',
+            database: 'myblog'
+        }
+        // 创建mysql 对象
+        const con = mysql.createConnection(MYSQL_CONF)
+
+        // 开始连接
+        con.connect();
+        // 执行sql语句
+        // 返回json字符串
+        // const sql = "select * from users;";
+        // const sql = "select id, username from users;";
+        // 返回对象, 看受影响的行数, changedRows: 1
+        // const sql = "update users set realname='李四2' where id='3'";
+        // 返回对象, 看插入的id, insertId: 4,
+        const sql = "insert into users (username, password, realname) value('wangwu', '123', '王五');"
+        con.query(sql, (err, result) => {
+        if (err) {
+            console.error(err);
+            return
+        }
+        console.log(result);
+        })
+        // 关闭连接
+        con.end();
+    ```
+
+# 博客项
+
+> 目标 -> 需求 -> 方案 -> UI -> 开发 -> 联调 -> 测试 -> 上线
+![项目架构](./cut/项目架构图.png)
+
+1. 目标: 开发博客系统, 拥有博客的查看, 编写, 管理功能 | 只开发server端
+
+2. 需求: 首页, 作者主页, 博客详情页 | 登录页 | 管理中心: 新建页, 编辑页
+
+3. 技术方案
+    1. 数据如何存储
+        1. 博客
+        2. 用户
+        ![数据存储](./cut/数据存储.png)
+    2. 接口设计
+    ![接口设计](./cut/接口设计.png)
+
+4. 登录, 业界有统一的设计方案(框架直接会有)
+
+5. 路由和api的区别
+
+    1. 路由: api的一部分, 后端系统内部定义
+
+    2. api: api + 输入 + 输出(告诉你路由, 入参, 返回)
+
+## 登录模块
+
+### 核心: 登录校验&登录信息存储
+
+#### cookie 和 session
+
+1. cookie的概念(容易暴露用户隐私)
+    1. 存储在浏览器的一段字符串(最大5kb)
+    2. 跨域不共享
+    3. 格式如: k1=v1;k2=v2; 因此可以存储结构化数据
+    4. 每次发送一次请求, 会把本次请求域的cookie发送到server端
+    5. server端可以修改cookie值并返回浏览器端
+    6. 浏览器也可以通过js修改cookie(有限制)
+
+2. js操作cookie和浏览器查看cookie
+    1.浏览器查看cookie的三种方式
+        1. 请求的Header
+        2. Application
+        3. 在控制台: `document.cookie`, 浏览器修改 document.cookie='name=test', 就相当于增加了
+    2. js查看修改cookie(有限制)
+
+3. server端操作cookie, 实现登录验证
+
+    1. 查看cookie: `req.headers.cookie`, 字符串
+
+    2. 修改cookie: `res.setHeader('Set-Cookie', userid=test;path='/')`, 这代表所设置的cookie适用于根路由以下所有路由
+
+    3. 实现登录验证
+        1. 服务端给到账号密码, server端接受, 到数据库查询
+        2. 成功则设置cookie, 运用到根路由
+        3. 其他页面通过获取cookie, 判断cookie是否有userid字段, 然后给权限
+
+    4. 限制cookie
+
+        ```js
+            // 设置cookie的过期时间, 返回的是GMT格式时间
+            // Thu, 04 Apr 2019 02:12:16 GMT
+            const getCookieExpires = () => {
+                const d = new Date();
+                d.setTime(d.getTime() + (24 * 60 * 60 * 1000))
+                return d.toGMTString()
+            }
+            // 1.设置cookie的关键参数
+            // 2.适用于根路由及以下
+            // 3.只能server端修改cookie
+            // 4.cookie的过期时间
+            res.setHeader('Set-Cookie', `userid=${data.userid}; path='/'; httpOnly; expires=${getCookieExpires()}`)
+        ```
+
+    5. cookie不可以直接存储username, 只存userid/sessionid, 对应到session的username
+
+    ![cookie的设置](./cut/cookie设置.png)
+
+4. session
+
+    1. session: 根据cookie.userid, 拉取session(没有就设置session为{})数据, session.username就是登录成功
+        1. userid: 如果没有登陆过, 那就设置cookie(所有接口)
+        2. session: 登录接口, 验证完拿到用户数据, 设置session(登录接口)
+        3. 浏览器只存储无意义的userid, 服务器存储session用户数据
+
+        ![session](./cut/session设置.jpeg)
+
+    2. session局限(js变量, 放在node进程内存)
+        1. 进程内存有限, 访问量过大,内存暴增
+        2. 正式线上是多线程, 进程内存无法共享,即session无法共享
+
+    ![内存](./cut/内存.png)
+
+#### Redis
+
+1. 概念
+    1. 解决session作为js变量, 存储在node进程的问题 ----- Redis
+
+        1. web server 最常用的缓存数据库, 数据存放在内存中
+        2. 相比mysql, 访问速度快(内存和硬盘)
+        3. 成本高, 可存储数据更小,且关机就没了
+        ![Redis](./cut/Redis.png)
+
+    2. web server, Redis, Mysql三方独立成单独服务(跑其他进程), 都可拓展(拓展成集群)
+
+    3. session适合存储在redis的原因
+
+        1. session访问频繁, 对性能要求高
+        2. session可以不考虑断点丢失数据的问题(redis也可断电不丢失, 需其他配置)
+        3. session存储数据不会太大
+
+2. 安装
+    1. 下载安装
+        win安装: `http://www.runoob.com/redis/redis-install.html`
+        Mac安装: `brew install redis`
+    2. Mac启动
+        1. `redis-server`: 启动redis服务 (`brew services start redis`)
+        2. `redis-cli`(需新开终端): 进入命令行(显示ip和端口)
+        3. 常见命令(都是key = val的格式)
+
+        ```shell
+            # 进入交互
+            $ redis-cli
+            # 设置一个key=val
+            127.0.0.1:6379> set myname admin
+            OK
+            # 获取一个key的val
+            127.0.0.1:6379> get myname
+            "admin"
+            # 获取所有的key
+            127.0.0.1:6379> keys *
+            1) "myname"
+            # 删除某个key和val
+            127.0.0.1:6379> del myname
+            (integer) 1
+            # exit 退出
+        ```
+
+3. Node连接Redis, 并封装成api可供调用
+
+    ```js
+        const { REDIS_CONF } = require('../conf/db');
+        const redis = require('redis');
+        // 2.创建redis对象
+        const redisClient = redis.createClient(REDIS_CONF.port, REDIS_CONF.host);
+        redisClient.on('error', err => {
+            console.error(err);
+        })
+        // 3.统一处理redis指令
+        const set = (key, val) => {
+            if (typeof val === 'object') {
+                val = JSON.stringify(val);
+            }
+            // redis.print, 打印存储成功与否, Reply: OK
+            redisClient.set(key, val, redis.print)
+        }
+        const get = (key) => {
+            return new Promise((resolve, reject) => {
+                redisClient.get(key, (err, val) => {
+                    if (err) {
+                        reject(err);
+                        return
+                    }
+                    if (val == null) {
+                        resolve(null);
+                        return
+                    }
+                    try {
+                        resolve(JSON.parse(val));
+                    } catch (error) {
+                        resolve(val)
+                    }
+                })
+            })
+            }
+            // 4.单例模式, 不关闭redis连接, 导包
+            module.exports = { set, get }
+    ```
+
+4. session存入redis
+
+5. 登录验证(各个路由都需要验证登录与否)
+
+#### nginx反向代理
+
+1. 前端的html页面,
+    1. 全局安装 `yarn global add http-server`
+    2. 在html文件中启动: `http-server -p 8001`
+    相当于在本地启动一个端口为8001的node服务, 请求`localhost:8001`返回渲染静态index.html网页
+    3. 此时server端是8000端口, web端是8001端口, nginx反向代理实现跨域(都在nginx启动的8080下)
+
+2. nginx
+    1. 概念
+        1. 高性能web服务器
+        2. 一般用作静态服务器, 负载均衡
+        3. 反向代理(跨域)
+        ![nginx](./cut/nginx.png)
+    2. 下载
+        1. win下载: 官网下载`http://nginx.org/en/download.html`
+        2. mac下载: `brew install nginx`
+
+    3. 配置文件
+        1. win: `C:\nginx\conf\nginx.conf`
+        2. mac: `/usr/local/etc/nginx/nginx.conf`
+
+    4. Nginx命令
+        1. 检测配置文件格式是否正确: `nginx -t`
+        2. 启动nginx, 重启nginx: `nginx -s reload`
+        3. 停止: `nginx -s stop`
+        4. Mac 打开配置文件: `sudo vi /usr/local/etc/nginx/nginx.conf`(也可直接编辑)
+
+    5. Nginx配置文件
+
+        ```shell
+            # 只是配置server
+            server {
+                listen       8080; # 监听8080端口
+                server_name  localhost;
+                location / { # 当请求/开头则是静态文件, 代理到8001
+                    proxy_pass http://localhost:8001;
+                }
+                location /api/ { # 当请求/api开头则是后台, 代理到8000
+                    proxy_pass http://localhost:8000;
+                    proxy_set_header Host $host; # 代理之后host不一样, 所以把host传过去
+                }
+            }
+        ```
+
+    ![login](./cut/login.png)
+
+#### 日志记录(stream的使用)
+
+1. 日志类型
+    1. 访问日志access log(最重要)
+    2. 自定义日志(自定义事件, 错误日志等)
+    3. 日志存在文件, 不存在redis和mysql中, 日志太大(redis pass), 日志不需要链表, 不需要部署环境(mysql pass)
+
+2. 记录日志(node操作stream)
+    1. stream(流), 一边下载, 一边存储, 节省很多的硬件资源, 提高文件IO和网络IO
+    ![stream](./cut/stream.png)
+
+3. 日志开发和使用
+
+    ```js
+        // 标准输入输出 (Linux概念, node的实现)
+        // shell 输入什么, 用管子连接, 就会输出什么
+        process.stdin.pipe(process.stdout);
+
+        // 读取文件的同时写入文件
+        const fileName1 = path.resolve(__dirname, 'data.txt');
+        const fileName2 = path.resolve(__dirname, 'data-bak.txt');
+        // 创建读取文件的流
+        const readStream = fs.createReadStream(fileName1);
+        // 创建写进文件的流, a是append, 不然默认是覆盖
+        const writeStream = fs.createWriteStream(fileName2, { flags: 'a'});
+        // 也可以通过write写入文件
+        writeStream.write(log + '\n)
+        // 读的流写进文件(流的形式)
+        readStream.pipe(writeStream);
+        // 读写完成之后能打印
+        readStream.on('end', () => {
+          console.log('copy ok');
+        })
+
+        // 读取文件, 通过pipe返回
+        const server = http.createServer((req, res) => {
+          const fileName = path.resolve(__dirname, 'data.txt');
+          if (req.method === 'GET') {
+            // 文件IO操作stream
+            const readStream = fs.createReadStream(fileName);
+            // 网络IO操作stream
+            // 读的流直接返回客户端
+            readStream.pipe(res);
+
+            // 输入的流直接输出客户端
+            // req.pipe(res)
+          }
+        })
+    ```
+
+4. 日志文件拆分(contrab), 日志内容分析(readline)
+
+    1. 实现方式: 定时任务, linux的contrab命令实现拆分日志
+
+        1. contrab命令, 设置定时任务, 格式:`*****`command(分/时/日期/月/星期)
+
+        2. 设置定时任务的shell脚本
+
+            ```shell
+                # 可执行的shell脚本 (运维干的事)
+                #!/bin/sh
+                # 先到log文件所在的位置
+                cd /Users/aluka/desktop/open/05blog-1/logs
+                # copy access.log文件, 生成新文件并重命名为2019-11-04.access.log
+                cp access.log $(date +%Y-%m-%d).access.log
+                # 清空access.log, 继续积累日志
+                echo "" > access.log
+            ```
+
+        3. 执行一次: cd到log文件中, `sh copy.sh`, 即会执行一次
+
+        4. 执行写的定时任务(定时执行上述代码):
+
+            ```shell
+                sh copy.sh  contrab -e
+                *0*** sh /Users/aluka/desktop/open/05blog-1/src/utils/copy.sh
+            ```
+
+    2. 日志分析(例子是: 分析chrome日志占比):
+
+        1. nodejs的readline(基于stream, 效率高), 逐行读取日志
+
+#### 安全(web server层面没办法管理硬件方面的攻击DDOS)
+
+1. SQL注入: 窃取数据库的数据
+
+    1. 攻击方法: 输入一个sql片段, 最终拼接成一段攻击代码
+    2. 预防措施: mysql的`escape`函数处理输入内容
+    3. 代码演示:
+
+        ```js
+            // 原本node的sql拼接语句
+            `select * from users where username='zhangsan' and password='123'`
+            // 当登录时候, 输入: zhangsan'--  时
+            `select * from users where username='zhangsan'--' and password='123'`
+            // 后面的部分就被注释掉, 然后不需要密码也能登录
+            // escape处理之后, 把' 转义成 \', 所以注意escape的之后, sql语句不需要加''
+            `select * from users where username='zhangsan\'--' and password='123'`
+        ```
+
+    4. 解决: `username = mysql.escape(username)`, 会把特殊符号处理
+
+2. XSS攻击: 获取前端的cookie内容
+
+    1. 攻击方式: 在页面展示内容中掺杂js代码, 以获取网页信息
+    2. 预防方式: 转换生成js的特殊字符
+    3. 代码演示: 在输入框内输入`<script>alert(document.cookie)</script>`
+    4. 解决: `npm i xss --save`
+
+        ```js
+            const xss = require('xss');
+            // 原本title直接存, 现在把特殊字符进行转义, "<" ">"都转义, 形成不了js语句
+            title = xss(title)
+        ```
+
+    ![转换js](./cut/转换js.png)
+
+3. 密码加密(明文密码不安全)
+
+    1. 即便攻破数据库, 也不能泄露用户账号密码
+    2. 攻击方式: 获取了此网页的账号密码, 再用此账号密码去登录其他系统
+    3. 解决: nodejs提供加密的库, `crpyto`
+
+    ```js
+        // 对密码进行md5加密
+        // node自带的
+        const crpyto = require('crypto');
+
+        //密钥, 随便的文字
+        const SECRET_KEY = 'Wangbin_666';
+
+        //md5加密
+        const md5 = (content) => {
+        let md5 = crpyto.createHash('md5');
+        // 生成十六进制
+        return md5.update(content).digest('hex');
+        }
+
+        // 加密函数
+        const getPassword = (password) => {
+        const str = `password=${password}&key=${SECRET_KEY}`
+        return md5(str);
+        }
+        module.exports = {
+            getPassword
+        }
+        // 之后的密码: getPassword(密码)
+    ```
+
+
+#### 总结
+
+![流程图](./cut/流程图.png)
+
+# Express(web server框架)
+
+## Express的下载安装和使用
+
+1. 安装(使用脚手架express-generator)
+
+    1. `npm install express-generator -g` 全局安装
+    2. 执行`express express-test` 生成express-test项目
+    3. `npm install`安装依赖
+    4. `npm start`启动成功
+
+## Expres中间件
+
+## 开发接口, 连接数据库, 实现登录, 日志记录
+
+## Express的中间件原理
