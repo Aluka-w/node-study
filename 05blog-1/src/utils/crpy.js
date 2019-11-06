@@ -8,7 +8,7 @@ const SECRET_KEY = 'Wangbin_666';
 //md5加密
 const md5 = (content) => {
   let md5 = crpyto.createHash('md5');
-  // 生成十六进制
+  // 生成十六进制的32位数
   return md5.update(content).digest('hex');
 }
 

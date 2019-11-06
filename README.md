@@ -369,6 +369,23 @@
 
     2. api: api + 输入 + 输出(告诉你路由, 入参, 返回)
 
+6. 涉及需要开启服务而被占用的端口
+    1. mysql: `localhost:3306`
+    2. redis: `localhost:6379`
+    3. web server: `localhost: 8000`
+    4. 前端网页: `localhost:8001`
+    5. nginx: `localhost:8080`
+    最终通过代理, 都由localhost:8080访问
+
+7. 项目涉及到下载的包
+    1. `cross-env, 监控环境变量`
+    2. `nodemon, 监控代码变化并代码重启`
+    3. `mysql, node操作mysql`
+    4. `redis, 操作redis`
+    5. `xss, 防止xss攻击`
+    6. `node自带crpyto, 对密码进行md5加密`
+    7. `node自带readline, 对日志进行逐行分析`
+
 ## 登录模块
 
 ### 核心: 登录校验&登录信息存储
@@ -394,14 +411,12 @@
 
     1. 查看cookie: `req.headers.cookie`, 字符串
 
-    2. 修改cookie: `res.setHeader('Set-Cookie', userid=test;path='/')`, 这代表所设置的cookie适用于根路由以下所有路由
-
-    3. 实现登录验证
+    2. 实现登录验证
         1. 服务端给到账号密码, server端接受, 到数据库查询
         2. 成功则设置cookie, 运用到根路由
         3. 其他页面通过获取cookie, 判断cookie是否有userid字段, 然后给权限
 
-    4. 限制cookie
+    3. 限制cookie
 
         ```js
             // 设置cookie的过期时间, 返回的是GMT格式时间
@@ -418,7 +433,7 @@
             res.setHeader('Set-Cookie', `userid=${data.userid}; path='/'; httpOnly; expires=${getCookieExpires()}`)
         ```
 
-    5. cookie不可以直接存储username, 只存userid/sessionid, 对应到session的username
+    4. cookie不可以直接存储username, 只存userid/sessionid, 对应到session的username
 
     ![cookie的设置](./cut/cookie设置.png)
 
@@ -570,6 +585,18 @@
                     proxy_set_header Host $host; # 代理之后host不一样, 所以把host传过去
                 }
             }
+            # 配置server
+            server {
+                listen       9999; # 监听9999端口
+                server_name  localhost;
+                location / {
+                    root E:/yiManagerDevice/hotel; # 定义服务器的默认网站根目录位置
+                    index index.html index.htm app.html; # 定义首页索引文件名称
+                }
+                location /v1 { # 当请求/api开头则是后台, 代理到8000
+                    proxy_pass https://dp.clife.net/v1;
+                }
+            }
         ```
 
     ![login](./cut/login.png)
@@ -600,7 +627,7 @@
         // 创建写进文件的流, a是append, 不然默认是覆盖
         const writeStream = fs.createWriteStream(fileName2, { flags: 'a'});
         // 也可以通过write写入文件
-        writeStream.write(log + '\n)
+        // writeStream.write(log + '\n)
         // 读的流写进文件(流的形式)
         readStream.pipe(writeStream);
         // 读写完成之后能打印
@@ -643,7 +670,7 @@
                 echo "" > access.log
             ```
 
-        3. 执行一次: cd到log文件中, `sh copy.sh`, 即会执行一次
+        3. 执行一次: cd到shell文件夹中, `sh copy.sh`, 即会执行一次
 
         4. 执行写的定时任务(定时执行上述代码):
 
@@ -656,6 +683,38 @@
 
         1. nodejs的readline(基于stream, 效率高), 逐行读取日志
 
+        ```js
+            const fs = require('fs');
+            const path = require('path');
+            const readline = require('readline');
+
+            const fileName = path.join(__dirname, '../', '../', 'logs', 'access.log');
+            // 文件IO, 读取文件流
+            const readStream = fs.createReadStream(fileName);
+            // 创建readline, 逐行读取文件
+            const rl = readline.createInterface({
+                input: readStream
+            })
+
+            let chromeNum = 0;
+            let sum = 0;
+            // 逐行的过程
+            rl.on('line', (lineData) => {
+                if (!lineData) {
+                    return
+                }
+                sum++;
+                const arr = lineData.split(' -- ');
+                if (arr[2] && arr[2].indexOf('Chrome') > 0) {
+                    chromeNum++;
+                }
+            })
+            // 全部读取完毕
+            rl.on('close', () => {
+                console.log('chrome浏览器的占比', chromeNum / sum)
+            })
+        ```
+
 #### 安全(web server层面没办法管理硬件方面的攻击DDOS)
 
 1. SQL注入: 窃取数据库的数据
@@ -665,12 +724,12 @@
     3. 代码演示:
 
         ```js
-            // 原本node的sql拼接语句
+            // 原本node后台的sql拼接语句
             `select * from users where username='zhangsan' and password='123'`
             // 当登录时候, 输入: zhangsan'--  时
-            `select * from users where username='zhangsan'--' and password='123'`
+            `select * from users where username='zhangsan'-- ' and password='123'`
             // 后面的部分就被注释掉, 然后不需要密码也能登录
-            // escape处理之后, 把' 转义成 \', 所以注意escape的之后, sql语句不需要加''
+            // escape针对特殊字符处理之后, 把' 转义成 \', 所以注意escape的之后, sql语句不需要加''
             `select * from users where username='zhangsan\'--' and password='123'`
         ```
 
@@ -679,7 +738,7 @@
 2. XSS攻击: 获取前端的cookie内容
 
     1. 攻击方式: 在页面展示内容中掺杂js代码, 以获取网页信息
-    2. 预防方式: 转换生成js的特殊字符
+    2. 预防方式: 转义生成js的特殊字符
     3. 代码演示: 在输入框内输入`<script>alert(document.cookie)</script>`
     4. 解决: `npm i xss --save`
 
@@ -707,22 +766,21 @@
 
         //md5加密
         const md5 = (content) => {
-        let md5 = crpyto.createHash('md5');
-        // 生成十六进制
-        return md5.update(content).digest('hex');
+            let md5 = crpyto.createHash('md5');
+            // 生成十六进制
+            return md5.update(content).digest('hex');
         }
 
         // 加密函数
         const getPassword = (password) => {
-        const str = `password=${password}&key=${SECRET_KEY}`
-        return md5(str);
+            const str = `password=${password}&key=${SECRET_KEY}`
+            return md5(str);
         }
         module.exports = {
             getPassword
         }
         // 之后的密码: getPassword(密码)
     ```
-
 
 #### 总结
 
@@ -735,11 +793,16 @@
 1. 安装(使用脚手架express-generator)
 
     1. `npm install express-generator -g` 全局安装
-    2. 执行`express express-test` 生成express-test项目
+    2. 执行`express express-generator` 生成express-generator项目
     3. `npm install`安装依赖
     4. `npm start`启动成功
+    5. express-generator脚手架, 前后端混合开发做的脚手架
+
+2. express的脚手架, 第11用例, 解释了脚手架各插件的作用, express如何处理路由
 
 ## Expres中间件
+
+1. 例子12, 中间件的原理(本质还是函数, 然后通过next()执行下一步)
 
 ## 开发接口, 连接数据库, 实现登录, 日志记录
 
