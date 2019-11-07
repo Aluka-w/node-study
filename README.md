@@ -344,7 +344,7 @@
         con.end();
     ```
 
-# 博客项
+# 原生开发博客(例子5)
 
 > 目标 -> 需求 -> 方案 -> UI -> 开发 -> 联调 -> 测试 -> 上线
 ![项目架构](./cut/项目架构图.png)
@@ -786,9 +786,18 @@
 
 ![流程图](./cut/流程图.png)
 
-# Express(web server框架)
+# Express开发博客(例子11)
 
-## Express的下载安装和使用
+1. 用到的插件
+    1. `mysql`
+    2. `xss`
+    3. `cross-env`
+    4. `nodemon`
+    5. `express-session, 实现session的存储和cookie的key/val的加密功能`
+    6. `redis 和 connect-redis, 实现redis和redis的连接`
+    7. `脚手架推荐 morgan 记录日志`
+
+## express-generator的下载安装和使用
 
 1. 安装(使用脚手架express-generator)
 
@@ -800,10 +809,128 @@
 
 2. express的脚手架, 第11用例, 解释了脚手架各插件的作用, express如何处理路由
 
-## Expres中间件
-
-1. 例子12, 中间件的原理(本质还是函数, 然后通过next()执行下一步)
+    * `req.query, express框架自带`
+    * `req.cookie, cookie-parser配置`
+    * `req.session, express-session配置`
+    * `req.body, express.json()/urlencoded({ extended: false })配置`
 
 ## 开发接口, 连接数据库, 实现登录, 日志记录
 
-## Express的中间件原理
+1. 开发接口
+
+    ```js
+        var express = require('express');
+        var router = express.Router();
+
+        router.get('/list', function(req, res, next) {
+            //express 自带的req.query解析get参数
+            let author = req.query.author || '';
+            const keyword = req.query.keyword || '';
+            // res.json, 干了两件事
+            // 设置返回头res.setHeader('Content-type', 'application/json')
+            // 设置json格式, res.end(JSON.stringify())
+            return getList(author, keyword).then(listData => {
+                res.json(
+                    new SuccessModel(listData)
+                );
+            })
+        });
+    ```
+
+2. 连接数据库, db, conf, model, controller文件夹都可复用, utils->cryp, 那么连接数据库也复用
+
+3. 实现登录
+
+    1. `express-session` 和 `connect-redis`直接连接redis
+        1. 这两个中间件, 使得session和redis的值能够同步, 当登录之后, session存储了username和realname, session就会同步到, 未登录时候, 只存简单的cookie设置
+
+        ```js
+            // 引入包, session的引用, app.js
+            const session = require('express-session');
+            const redisStore = require('connect-redis')(session); // session连接redis
+
+            const redisClient = require('./db/redis');  // 创建redis的客户端
+            const sessionStore = new redisStore({
+                client: redisClient
+            })
+            // session存储登录信息, 故而在路由之前被注册即可
+            app.use(session({
+                secret: '123' // 随意的密匙, 加密cookie
+                cookie: {
+                    // path: '/',      //默认配置 作用域在所有路由
+                    // httpOnly: true, // 默认配置 只允许后台更改
+                    maxAge: 24 * 60 * 60 * 1000// cookie24h有效
+                },
+                store: sessionStore // 这就算把session和redis连接了, session和redis的数据能同步, 登录了手动存储session, redis也会同步过去
+            }))
+        ```
+
+    2. req.session保存登录信息, 登录校验做成express中间件
+
+4. 日志记录
+
+    1. morgan插件做日志记录
+
+        ```js
+            // 配置完, 每次开发环境下每次请求都会打印在控制台上, app.js
+            var logger = require('morgan');
+            app.use(logger('dev'));
+            // 例子: POST /api/user/login 200 5.031 ms - 11
+        ```
+
+    2.自定义日志使用console.log和console.error即可
+        * 在开发环境时候日志在控制面板打印, 在线上环境就会打印在log文件下
+
+    3.日志拆分(contrab定时任务)和日志分析(reanline逐行分析)
+
+## Expres中间件及原理(例子12)
+
+1. 中间件的原理(本质还是函数, 在中间do something)
+    * 使用app.use注册中间件, 先收集起来
+    * 遇到http请求, 根据path, method判断触发哪些
+    * 通过next()执行下一步
+
+2. 如何实现
+
+3. 代码演示
+
+# Koa2
+
+1. express局限于异步回调, koa2原生支持async/await
+
+2. 新开发框架许多也基于koa2(例子: 阿里egg.js)
+
+## async/await语法(异步函数)
+
+1. await必须包裹在 async 函数里面
+2. await 后面可以追加promise对象, 获取resolve的值
+3. await 执行返回的也是一个promise对象
+4. try-catch可以捕获 promise 中reject的值
+
+```js
+    // await必须包裹在 async 函数里面
+    async function getFileData = () => {
+        // try-catch可以捕获 promise 中reject的值
+        try {
+            // await 后面可以追加promise对象, 获取resolve的值
+            const aData = await getFileContent('a.json');
+            const bData = await getFileContent(aData.next);
+            const cData = await getFileContent(bData.next);
+            return cData
+        } catch(err) {
+            console.log(err);
+        }
+    }
+    async function test() {
+        // 即await 执行返回的也是promise对象
+        const cData = await getFileData();
+        console.log(cData);
+    }
+    test();
+```
+
+## koa2安装和下载
+
+## 开发接口,连接数据库,实现登录,日志记录
+
+## 分析koa2中间件原理
