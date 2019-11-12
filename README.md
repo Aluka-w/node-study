@@ -909,7 +909,7 @@
 
 ```js
     // await必须包裹在 async 函数里面
-    async function getFileData = () => {
+    function getFileData = async () => {
         // try-catch可以捕获 promise 中reject的值
         try {
             // await 后面可以追加promise对象, 获取resolve的值
@@ -930,6 +930,20 @@
 ```
 
 ## koa2安装和下载
+
+1. koa2脚手架
+    1. `npm install koa-generator -g`
+    2. `koa2 koa2-test`, 创建koa2-test文件
+    3. `npm install` & `npm run dev`
+
+2. koa2安装的包
+
+    1. `cross-env`
+
+3. koa2中app.js文件
+
+    1. 各个插件作用
+    2. 处理get, post请求
 
 ## 开发接口,连接数据库,实现登录,日志记录
 
