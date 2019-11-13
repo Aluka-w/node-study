@@ -939,12 +939,162 @@
 2. koa2安装的包
 
     1. `cross-env`
+    2. `redis` 连接redis
+    3. `koa-generic-session` 和 `koa-redis`实现session和redis的同步
+    4. `mysql`
+    5. `xss`
 
 3. koa2中app.js文件
 
     1. 各个插件作用
     2. 处理get, post请求
 
+        ```js
+            // koa不自带路由, 必须下载插件
+            const router = require('koa-router')()
+            // 意味着本文件下默认都是以 '/users' 开头
+            router.prefix('/users')
+            // '/user/bar'
+            // async 确保中间件的next顺利运行
+            router.get('/bar', async function (ctx, next) {
+                // ctx 相当于之前req, res的集合
+                const query = ctx.query;
+                // ctx 相当于之前express的 req.json
+                ctx.body = {
+                    errno: 0,
+                    query,
+                    data: ['博客列表']
+                }
+            })
+            router.post('/login', async function (ctx, next) {
+                // ctx.request.body 就是获取req.body 的
+                const { username, password } = ctx.request.body;
+                ctx.body = {
+                    errno: 0,
+                    username,
+                    password
+                }
+            })
+        ```
+
+    3. 中间件机制
+
+        ```js
+            // app.use 注册中间件
+            app.use(async (ctx, next) => {
+                // async之后, 中间件的执行, 写法上由异步变成同步
+                const start = new Date()
+                // next返回promise对象, await才可使用
+                await next()
+                const ms = new Date() - start
+                console.log(`${ctx.method} ${ctx.url} - ${ms}ms`)
+            })
+        ```
+
 ## 开发接口,连接数据库,实现登录,日志记录
 
-## 分析koa2中间件原理
+1. 实现登录(session机制)
+    1. 基于`koa-generic-session` 和 `koa-redis`实现
+
+    ```js
+        const session = require('koa-generic-session')  // 处理session
+        const redisStroe = require('koa-redis') // redis
+        // 处理session在路由之前
+        app.keys = ['31321']  // 秘匙
+        app.use(session({
+            // 配置cookie
+            cookie: {
+                path: '/',
+                httpOnly: true,
+                maxAge: 24 * 60 * 60 * 1000
+            },
+            // 配置redis
+            store: redisStroe({
+                all: "127.0.0.1:6379"   // redis的地址和端口
+            })
+        }))
+    ```
+
+2. 开发路由
+3. 记录日志: `koa-morgan`, console.log/error实现日志记录, 线上环境写入文件中
+
+## 分析koa2中间件原理(例子14)
+
+1. 中间件的运行(洋葱圈)
+
+    * 遇到await next() 则先执行下一个中间件返回promise, 直到最后依次返回
+![洋葱圈](./cut/洋葱圈.png)
+
+2. 分析如何实现
+
+    1. app.use注册中间件, 先收集
+    2. 实现next机制, 即上一个通过next触发下一个
+    3. 不涉及url和method的筛选(koa2本身就没有路由)
+
+3. 代码演示
+
+# 上线与配置
+
+## PM2(例子15)
+
+1. PM2的核心价值(npm run prd 即可)
+    1. 进程守护, 系统崩溃自动重启(一直重启)
+    2. 启用多进程, 充分利用CPU和内存
+    3. 自带日志记录功能(之前的console.log 和 console.error会自动记录在配置的文件内)
+
+2. PM2介绍
+    1. 下载安装
+        `npm i pm2 -g` 下载
+        `pm2 --version` 查看版本
+
+    2. 基本使用
+        1. 配置启动命令: `"prd": "cross-env NODE_ENV=dev pm2 start ./app.js"`
+        2. 启动完, 会告知pm2配置, 且交还控制台(nodemon会在前台运行)
+
+    3. 常用命令
+        `pm2 start ...` 启动项目
+        `pm2 list` 在控制台看到pm的配置列表
+        `pm2 restart <AppName>/<id>` 根据appname/id(pm的配置列表有), 重启某个服务
+        `pm2 stop <AppName>/<id>` 停止
+        `pm2 delete <AppName>/<id>` 删除
+        `pm2 info <AppName>/<id>` 服务信息
+        `pm2 log <AppName>/<id>` 查看进程日志
+        `pm2 monit <AppName>/<id>` 查看进程cpu和进程的信息
+
+    4. 常用配置
+        1. 新建pm2的配置文件(包括进程数量, 日志文件目录等)
+
+            ```json
+                {
+                    "apps": {
+                        "name": "pm2-server",  // 启动时候, 进程名称
+                        "script": "app.js",    // 启动目录文件
+                        "watch": true,         // 监听文件变化, 自动启动
+                        "ignore_watch": [
+                            "node_modules",    // 忽略node_modules
+                            "logs"             // 忽略logs文件变化
+                        ],
+                        "instances": 4,        // 多进程
+                        "error_file": "logs/err.log",   // 错误日志写入
+                        "out_file": "logs/out.log",     // 输出日志
+                        "log_date_formate": "YYYY-MM-DD HH:mm:ss"   // 输出日志时间格式
+                    }
+                }
+            ```
+
+            ![pm2](./cut/pm2.png)
+
+        2. 修改pm2启动命令, 重启
+            1. 修改启动命令: `"prd": "cross-env NODE_ENV=dev pm2 start pm2.conf.json"`
+            2. 重启
+
+        3. 访问server, 检查日志文件内容(日志文件是否生效)
+            1. 就已经有访问记录
+
+    5. pm2的多进程
+
+        1. 多进程优势, 单个进程内存的内存受限(内存充分使用), 充分发挥多核CPU的优势
+        2. 多进程劣势, 数据不共享, redis解决
+        3. 自动负载均衡, 具体表现在, 日志文件按照进程的响应不同, 生成多个日志文件
+
+    ![pm2多进程](./cut/pm2多进程.png)

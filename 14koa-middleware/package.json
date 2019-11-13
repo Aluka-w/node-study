@@ -1,0 +1,23 @@
+{
+  "name": "open",
+  "version": "1.0.0",
+  "description": "## Node环境",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aluka-w/node-study.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Aluka-w/node-study/issues"
+  },
+  "homepage": "https://github.com/Aluka-w/node-study#readme",
+  "dependencies": {
+    "koa": "^2.11.0"
+  }
+}

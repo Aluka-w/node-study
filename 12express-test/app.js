@@ -1,4 +1,6 @@
-const express = require('express');
+// const express = require('express'); // 选用express
+// 自己实现的express
+const express = require('./index');
 
 // 本次http的实例
 const app = express();
