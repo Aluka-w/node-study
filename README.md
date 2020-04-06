@@ -810,9 +810,32 @@
 2. express的脚手架, 第11用例, 解释了脚手架各插件的作用, express如何处理路由
 
     * `req.query, express框架自带`
-    * `req.cookie, cookie-parser配置`
+    * `access(), morgan处理日志记录的问题`
+    * `req.cookies, cookie-parser配置`
     * `req.session, express-session配置`
-    * `req.body, express.json()/urlencoded({ extended: false })配置`
+    * `req.body, express.json()/urlencoded({ extended: false })配置, 'application/json'或者urlencoded格式`
+    
+## express 中间件
+
+ 1. 通过next(), 依次串联执行
+ 
+ ```js
+    const loginCheck = (req, res, next) => {
+        console.log('模拟登陆成功')
+        setTimeout(() => {
+            next()
+        })
+    }
+    // 中间件的使用
+    app.use('/api', loginCheck, (req, res, next) => {
+        
+    })
+    
+ ```
+
+### app.use
+
+### next的机制
 
 ## 开发接口, 连接数据库, 实现登录, 日志记录
 
