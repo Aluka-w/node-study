@@ -653,7 +653,7 @@
 
 4. 日志文件拆分(contrab), 日志内容分析(readline)
 
-    1. 实现方式: 定时任务, linux的contrab命令实现拆分日志
+    1. 实现方式: 定时任务, linux的crontab命令实现拆分日志
 
         1. contrab命令, 设置定时任务, 格式:`*****`command(分/时/日期/月/星期)
 
