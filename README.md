@@ -895,14 +895,28 @@
     1. morgan插件做日志记录
 
         ```js
-            // 配置完, 每次开发环境下每次请求都会打印在控制台上, app.js
+            // app.js
             var logger = require('morgan');
-            app.use(logger('dev'));
-            // 例子: POST /api/user/login 200 5.031 ms - 11
+            const ENV = process.env.NODE_DEV
+            // 根据环境的不一样, 配置不同的日志
+            if (ENV === 'dev') {
+                // 开发环境打印: POST /api/user/login 200 5.031 ms - 11
+                app.use(logger('dev'));
+            } else {
+                // 线上环境就写入日志文件, access.log中
+                const logFileNmae = path.join(__dirname, 'logs', 'access.log')
+                const writeStream = fs.createWriteStream(logFileNmae, {flags: 'a'})
+                app.use(logger('combine'), {
+                    stream: writeStream
+                });
+            }
         ```
 
     2.自定义日志使用console.log和console.error即可
+    
         * 在开发环境时候日志在控制面板打印, 在线上环境就会打印在log文件下
+        
+        * 日志的输出格式可以配置, combine, dev(默认)等格式
 
     3.日志拆分(contrab定时任务)和日志分析(reanline逐行分析)
 
